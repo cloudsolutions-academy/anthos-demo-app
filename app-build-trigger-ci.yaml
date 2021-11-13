@@ -45,19 +45,6 @@ steps:
      sed "s/COMMIT_SHA/${SHORT_SHA}/g" > hydrated-manifests/kubernetes.yaml
 
 
-  # This step fetches the policies from the Anthos Config Management repository
-  # and consolidates every resource in a single file.
-- id: 'Download policies'
-  name: 'gcr.io/kpt-dev/kpt'
-  entrypoint: '/bin/sh'
-  args: ['-c', 'kpt pkg get https://github.com/cloudsolutions-academy/anthos-demo-acm.git/cluster@main constraints
-                  && kpt fn source constraints/ hydrated-manifests/ > hydrated-manifests/kpt-manifests.yaml']
-
-  # This step validates that all resources comply with all policies.
-- id: 'Validate against policies'
-  name: 'gcr.io/config-management-release/policy-controller-validate'
-  args: ['--input', 'hydrated-manifests/kpt-manifests.yaml']
-
   # If all works well, this step copies the kubernetes.yaml to staging directory. 
 - id: 'Copy config'
   name: 'gcr.io/cloud-builders/gcloud'
