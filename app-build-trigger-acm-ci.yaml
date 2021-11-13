@@ -26,14 +26,21 @@ steps:
   args:
   - '-c'
   - |
-    mkdir hydrated-manifests &&
     gcloud source repos clone demo-env && \
     cd demo-env && \
     git checkout staging && \
     git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
+- id: Create Hydraded Directory
+  name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    mkdir hydrated-manifests 
 
-#This step modifies the kuberbetes template with image id commit details
+
+#This step modifies the kuberbete template with image id commit details
 #and copies the files to hydrated-manifests for further processing.
 - id: Generate manifest
   name: 'gcr.io/cloud-builders/gcloud' 
@@ -41,7 +48,7 @@ steps:
   args:
   - '-c'
   - |
-     sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" manifests/kubernetes.yaml.template | \
+     sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" demo-env/manifests/kubernetes.yaml.template | \
      sed "s/COMMIT_SHA/${SHORT_SHA}/g" > hydrated-manifests/kubernetes.yaml
 
 
@@ -62,7 +69,7 @@ steps:
 - id: 'Copy config'
   name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: '/bin/sh'
-  args: ['-c', '\cp -r hydrated-manifests/kubernetes.yaml demo-env/config/staging/kubernetes.yaml']
+  args: ['-c', 'cp hydrated-manifests/kubernetes.yaml demo-env/config/staging/kubernetes.yaml']
 
 # This step pushes the kubernetes.yaml manifest to demo-env staging branch
 - id: Push manifest to demo-env staging branch
