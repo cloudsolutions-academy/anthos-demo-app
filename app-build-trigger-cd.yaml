@@ -18,7 +18,7 @@ steps:
   - 'gcr.io/$PROJECT_ID/demoapp:$SHORT_SHA'
 
 
-# This step clones the demo-env repository and checks out 
+# This step clones the demo-config repository and checks out 
 # staging branch
 - id: Clone demo environment repository
   name: 'gcr.io/cloud-builders/gcloud'
@@ -26,21 +26,14 @@ steps:
   args:
   - '-c'
   - |
-    gcloud source repos clone demo-env && \
-    cd demo-env && \
+    mkdir hydrated-manifests &&
+    gcloud source repos clone demo-config && \
+    cd demo-config && \
     git checkout staging && \
     git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
-- id: Create Hydraded Directory
-  name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: /bin/sh
-  args:
-  - '-c'
-  - |
-    mkdir hydrated-manifests 
 
-
-#This step modifies the kuberbete template with image id commit details
+#This step modifies the kuberbetes template with image id commit details
 #and copies the files to hydrated-manifests for further processing.
 - id: Generate manifest
   name: 'gcr.io/cloud-builders/gcloud' 
@@ -48,7 +41,7 @@ steps:
   args:
   - '-c'
   - |
-     sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" demo-env/manifests/kubernetes.yaml.template | \
+     sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" manifests/kubernetes.yaml.template | \
      sed "s/COMMIT_SHA/${SHORT_SHA}/g" > hydrated-manifests/kubernetes.yaml
 
 
@@ -56,17 +49,17 @@ steps:
 - id: 'Copy config'
   name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: '/bin/sh'
-  args: ['-c', 'cp hydrated-manifests/kubernetes.yaml demo-env/config/staging/kubernetes.yaml']
+  args: ['-c', '\cp -r hydrated-manifests/kubernetes.yaml demo-config/config/staging/kubernetes.yaml']
 
-# This step pushes the kubernetes.yaml manifest to demo-env staging branch
-- id: Push manifest to demo-env staging branch
+# This step pushes the kubernetes.yaml manifest to demo-config staging branch
+- id: Push manifest to demo-config staging branch
   name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: /bin/sh
   args:
   - '-c'
   - |
     set -x && \
-    cd demo-env && \
+    cd demo-config && \
     git add config/staging/kubernetes.yaml && \
     git commit -m "Commit manifest for gcr.io/${PROJECT_ID}/demoapp:${SHORT_SHA}" && \
     git push origin staging
